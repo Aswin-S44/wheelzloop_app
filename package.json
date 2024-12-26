@@ -9,8 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.0",
-    "@react-native-community/checkbox": "^0.5.17",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/slider": "^4.5.5",
     "@react-navigation/drawer": "^7.1.1",
     "@react-navigation/material-bottom-tabs": "^6.2.29",
@@ -33,10 +32,20 @@
     "react-navigation": "^4.4.4",
     "react-navigation-drawer": "^2.7.2",
     "react-navigation-material-bottom-tabs": "^2.3.5",
-    "react-navigation-stack": "^2.10.4"
+    "react-navigation-stack": "^2.10.4",
+    "react-dom": "18.3.1",
+    "react-native-web": "~0.19.13",
+    "@expo/metro-runtime": "~4.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  }
 }

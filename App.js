@@ -126,7 +126,7 @@ function CustomDrawerContent(props) {
   return (
     <DrawerContentScrollView {...props} style={styles.drawerContent}>
       <View style={styles.brandContainer}>
-        <Text style={styles.brandName}>Your Brand Name</Text>
+        <Text style={styles.brandName}>WheelzLoop</Text>
       </View>
       <DrawerItemList {...props} />
       <View style={styles.socialIcons}>

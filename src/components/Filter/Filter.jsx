@@ -8,7 +8,9 @@ import {
   ScrollView,
 } from "react-native";
 // import { BACKEND_URL } from "../../constants/urls"; // Update your backend URL if needed
-import CheckBox from '@react-native-community/checkbox';
+// import CheckBox from '@react-native-community/checkbox';
+import { CheckBox } from 'react-native';
+
 
 const Filter = ({ onFilterChange }) => {
   const [priceMin, setPriceMin] = useState(5000);

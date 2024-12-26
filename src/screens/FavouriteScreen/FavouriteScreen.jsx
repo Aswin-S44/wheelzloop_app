@@ -36,6 +36,7 @@ const FavouriteScreen = ({ navigation }) => {
         setFavCars(data.cars);
         setCount(data.cars.length);
       }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
     }
