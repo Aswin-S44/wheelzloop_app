@@ -11,13 +11,16 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons, AntDesign } from "@expo/vector-icons";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFavorites } from "../../context/FavoritesContext";
 const { width } = Dimensions.get("window");
 
 const DetailsScreen = ({ route }) => {
   const { car } = route.params;
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(car.images[0]);
+  // const [favorites, setFavorites] = useState([]);
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
 
   const openLightbox = (image) => {
     setSelectedImage(image);
@@ -34,6 +37,30 @@ const DetailsScreen = ({ route }) => {
     Linking.openURL(phoneNumber);
   };
 
+  const handleFavoriteToggle = async (item) => {
+    try {
+      const existingFavorites = await AsyncStorage.getItem("favorites");
+      const favoritesArray = existingFavorites
+        ? JSON.parse(existingFavorites)
+        : [];
+
+      if (favoritesArray.includes(item._id)) {
+        const updatedFavorites = favoritesArray.filter((id) => id !== item._id);
+        await AsyncStorage.setItem(
+          "favorites",
+          JSON.stringify(updatedFavorites)
+        );
+        // setFavorites(updatedFavorites);
+      } else {
+        favoritesArray.push(item._id);
+        await AsyncStorage.setItem("favorites", JSON.stringify(favoritesArray));
+        // setFavorites(favoritesArray);
+      }
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
@@ -45,8 +72,22 @@ const DetailsScreen = ({ route }) => {
           />
           <View style={styles.titleRow}>
             <Text style={styles.carName}>{car.name}</Text>
-            <TouchableOpacity style={styles.favouriteButton}>
-              <AntDesign name="hearto" size={24} color="rgb(222, 49, 99)" />
+            <TouchableOpacity
+              style={styles.favouriteButton}
+              // onPress={() => handleFavoriteToggle(car)}
+              onPress={() =>
+                favorites.includes(car._id)
+                  ? removeFavorite(car)
+                  : addFavorite(car)
+              }
+            >
+              <AntDesign
+                name="heart"
+                size={24}
+                color={
+                  favorites.includes(car._id) ? "rgb(222, 49, 99)" : "#ccc"
+                }
+              />
             </TouchableOpacity>
           </View>
           <ScrollView

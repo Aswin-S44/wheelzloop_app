@@ -2,65 +2,72 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
+  TouchableOpacity,
   FlatList,
   Image,
-  TouchableOpacity,
-  TextInput,
   Modal,
   Pressable,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { dummyCars } from "../../data";
-import BannerCarousel from "../../components/Banner/Banner";
 import axios from "axios";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import { BACKEND_URL } from "../../constants/url";
+import BannerCarousel from "../../components/Banner/Banner";
+import { AntDesign } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFavorites } from "../../context/FavoritesContext";
 
 const HomeScreen = ({ navigation }) => {
   const [cars, setCars] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredCars, setFilteredCars] = useState(dummyCars);
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState("All");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  // const [favorites, setFavorites] = useState([]);
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
+
+  const fetchCars = async (newPage = 1) => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/v1/customer/cars/all`, {
+        params: { page: newPage, limit: 10, name: searchQuery },
+      });
+      const newCars = res.data.cars;
+      setCars((prevCars) =>
+        newPage === 1 ? newCars : [...prevCars, ...newCars]
+      );
+      setHasMore(newCars.length > 0);
+      setPage(newPage);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const existingFavorites = await AsyncStorage.getItem("favorites");
+      // setFavorites(existingFavorites ? JSON.parse(existingFavorites) : []);
+    } catch (error) {
+      console.error("Error loading favorites:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchCars = async () => {
-      let res = await axios.get(`${BACKEND_URL}/api/v1/customer/cars/all`);
-
-      if (res && res.data && res.data.cars) {
-        setCars(res.data.cars);
-        setFilteredCars(res.data.cars);
-      }
-    };
-    fetchCars();
-  }, []);
+    fetchCars(1);
+    loadFavorites();
+  }, [searchQuery]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-    filterCars(selectedTab, query);
-  };
-
-  const filterCars = (tab, query) => {
-    let filtered = cars;
-    if (tab !== "All") {
-      filtered = filtered.filter((car) => car.type === tab.toLowerCase());
-    }
-    if (query) {
-      filtered = filtered.filter((car) =>
-        car.name.toLowerCase().includes(query.toLowerCase())
-      );
-    }
-    setFilteredCars(filtered);
   };
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
-    filterCars(tab, searchQuery);
-  };
-
-  const [filters, setFilters] = useState({});
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    console.log(newFilters);
   };
 
   const renderItem = ({ item }) => (
@@ -79,12 +86,24 @@ const HomeScreen = ({ navigation }) => {
       }}
       onPress={() => navigation.navigate("Details", { car: item })}
     >
+      <TouchableOpacity
+        style={{ margin: 5 }}
+        // onPress={() => handleFavoriteToggle(item)}
+        onPress={() =>
+          favorites.includes(item._id)
+            ? removeFavorite(item)
+            : addFavorite(item)
+        }
+      >
+        <AntDesign
+          name="heart"
+          size={18}
+          color={favorites.includes(item._id) ? "rgb(222, 49, 99)" : "#ccc"}
+        />
+      </TouchableOpacity>
       <Image
         source={{ uri: item.images[0] }}
-        style={{
-          width: "100%",
-          height: 120,
-        }}
+        style={{ width: "100%", height: 120 }}
         resizeMode="contain"
       />
       <View style={{ padding: 10 }}>
@@ -97,6 +116,9 @@ const HomeScreen = ({ navigation }) => {
           }}
         >
           {item.name}
+        </Text>
+        <Text>
+          {item?.fuelType} | {item?.transmission} | {item?.year}
         </Text>
         <Text style={{ fontSize: 14, color: "#666" }}>{item.place}</Text>
         <Text
@@ -178,11 +200,20 @@ const HomeScreen = ({ navigation }) => {
         ))}
       </View>
       <FlatList
-        data={filteredCars}
+        data={cars}
         renderItem={renderItem}
         keyExtractor={(item) => item._id}
         numColumns={2}
         contentContainerStyle={{ paddingBottom: 20 }}
+        onEndReached={() => fetchCars(page + 1)}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loading && (
+            <Text style={{ textAlign: "center", marginVertical: 10 }}>
+              Loading...
+            </Text>
+          )
+        }
       />
       <Modal
         visible={isFilterModalVisible}
@@ -206,11 +237,7 @@ const HomeScreen = ({ navigation }) => {
             }}
           >
             <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                marginBottom: 10,
-              }}
+              style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}
             >
               Filters
             </Text>

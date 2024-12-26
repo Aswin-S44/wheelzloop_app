@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,13 +12,18 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { dummyCars } from "../../data";
 import BannerCarousel from "../../components/Banner/Banner";
+import axios from "axios";
+import { BACKEND_URL } from "../../constants/url";
 
 const Cars = () => {
-  const [cars, setCars] = useState(dummyCars);
+  const [cars, setCars] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredCars, setFilteredCars] = useState(dummyCars);
+  const [filteredCars, setFilteredCars] = useState([]);
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState("All");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -26,7 +31,7 @@ const Cars = () => {
   };
 
   const filterCars = (tab, query) => {
-    let filtered = dummyCars;
+    let filtered = cars;
     if (tab !== "All") {
       filtered = filtered.filter((car) => car.type === tab.toLowerCase());
     }
@@ -48,6 +53,30 @@ const Cars = () => {
     setFilters(newFilters);
     console.log(newFilters);
   };
+
+  const fetchCars = async (newPage = 1) => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/v1/customer/cars/all`, {
+        params: { page: newPage, limit: 10, name: searchQuery },
+      });
+      const newCars = res.data.cars;
+      setCars((prevCars) =>
+        newPage === 1 ? newCars : [...prevCars, ...newCars]
+      );
+      setHasMore(newCars.length > 0);
+      setPage(newPage);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCars(1);
+  }, [searchQuery]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -162,11 +191,20 @@ const Cars = () => {
         ))}
       </View>
       <FlatList
-        data={filteredCars}
+        data={cars}
         renderItem={renderItem}
         keyExtractor={(item) => item._id}
         numColumns={2}
         contentContainerStyle={{ paddingBottom: 20 }}
+        onEndReached={() => fetchCars(page + 1)}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loading && (
+            <Text style={{ textAlign: "center", marginVertical: 10 }}>
+              Loading...
+            </Text>
+          )
+        }
       />
       <Modal
         visible={isFilterModalVisible}
